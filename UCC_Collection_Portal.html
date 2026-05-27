@@ -1,0 +1,1046 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UCC Collection Management Portal</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap');
+:root{--bg:#0a0e1a;--bg2:#0f1525;--card:#131a2e;--card2:#1a2340;--border:#1e2d4a;--accent:#00d4ff;--accent2:#0099cc;--gold:#ffd700;--green:#00e676;--red:#ff4757;--orange:#ff9800;--purple:#7c4dff;--text:#e0e8f5;--text2:#8899bb;--text3:#5a6a88;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
+#sidebar{position:fixed;left:0;top:0;bottom:0;width:240px;background:var(--bg2);border-right:1px solid var(--border);z-index:100;display:flex;flex-direction:column;}
+.sidebar-logo{padding:18px 18px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
+.logo-icon{width:36px;height:36px;background:linear-gradient(135deg,var(--accent),var(--purple));border-radius:9px;display:flex;align-items:center;justify-content:center;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;color:#fff;flex-shrink:0;}
+.logo-text{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;line-height:1.2;}
+.logo-sub{font-size:9px;color:var(--text2);font-weight:400;}
+.nav-section{padding:12px 8px 4px;}
+.nav-label{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);padding:0 10px 5px;}
+.nav-item{display:flex;align-items:center;gap:9px;padding:8px 11px;border-radius:8px;cursor:pointer;font-size:12.5px;color:var(--text2);transition:all 0.2s;margin-bottom:2px;border:1px solid transparent;}
+.nav-item:hover{background:var(--card);color:var(--text);}
+.nav-item.active{background:linear-gradient(135deg,rgba(0,212,255,0.15),rgba(124,77,255,0.1));color:var(--accent);border-color:rgba(0,212,255,0.2);}
+.nav-icon{font-size:14px;width:18px;text-align:center;}
+#main{margin-left:240px;min-height:100vh;}
+.topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:12px 26px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
+.topbar-title{font-family:'Rajdhani',sans-serif;font-size:19px;font-weight:700;}
+.topbar-right{display:flex;align-items:center;gap:10px;}
+.badge{background:var(--accent);color:var(--bg);font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;}
+.badge.live{animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.6}}
+.page{display:none;padding:22px 26px;}
+.page.active{display:block;animation:fadeIn 0.3s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px;margin-bottom:22px;}
+.kpi-card{background:var(--card);border:1px solid var(--border);border-radius:13px;padding:16px 18px;position:relative;overflow:hidden;transition:transform 0.2s;}
+.kpi-card:hover{transform:translateY(-2px);}
+.kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--accent-color,var(--accent));}
+.kpi-label{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:6px;}
+.kpi-value{font-family:'Rajdhani',sans-serif;font-size:26px;font-weight:700;line-height:1;margin-bottom:3px;}
+.kpi-sub{font-size:10px;color:var(--text2);}
+.kpi-icon{position:absolute;right:14px;top:14px;font-size:26px;opacity:0.14;}
+.charts-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:22px;}
+.chart-card{background:var(--card);border:1px solid var(--border);border-radius:13px;padding:18px;}
+.chart-card.full{grid-column:1/-1;}
+.chart-title{font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:600;margin-bottom:14px;color:var(--text);display:flex;align-items:center;gap:7px;}
+canvas{max-height:240px;}
+.table-card{background:var(--card);border:1px solid var(--border);border-radius:13px;overflow:hidden;margin-bottom:22px;}
+.table-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+.table-header h3{font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:600;}
+.tbl-actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
+table{width:100%;border-collapse:collapse;font-size:12px;}
+th{background:var(--bg2);padding:9px 12px;text-align:left;font-size:10px;letter-spacing:0.7px;text-transform:uppercase;color:var(--text2);font-weight:600;cursor:pointer;white-space:nowrap;}
+th:hover{color:var(--accent);}
+td{padding:9px 12px;border-bottom:1px solid rgba(30,45,74,0.5);color:var(--text);vertical-align:middle;}
+tr:hover td{background:rgba(0,212,255,0.03);}
+tr:last-child td{border-bottom:none;}
+.rank-badge{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;font-size:10px;font-weight:700;background:var(--card2);color:var(--text2);}
+.rank-1{background:linear-gradient(135deg,#ffd700,#ff9800);color:#000;}
+.rank-2{background:linear-gradient(135deg,#c0c0c0,#999);color:#000;}
+.rank-3{background:linear-gradient(135deg,#cd7f32,#a0522d);color:#fff;}
+.score-bar{display:flex;align-items:center;gap:7px;}
+.score-fill{height:5px;border-radius:3px;background:linear-gradient(90deg,var(--accent),var(--purple));flex-shrink:0;}
+.mode-chip{padding:2px 7px;border-radius:20px;font-size:10px;font-weight:600;}
+.mode-CASH{background:rgba(0,230,118,0.15);color:var(--green);}
+.mode-UPI{background:rgba(0,212,255,0.15);color:var(--accent);}
+.mode-CHEQUE{background:rgba(255,152,0,0.15);color:var(--orange);}
+.mode-NEFT_RTGS{background:rgba(124,77,255,0.15);color:var(--purple);}
+.filter-bar{background:var(--card);border:1px solid var(--border);border-radius:11px;padding:12px 16px;margin-bottom:18px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+.filter-bar label{font-size:11px;color:var(--text2);}
+.filter-bar select,.filter-bar input{background:var(--bg2);border:1px solid var(--border);border-radius:7px;padding:6px 9px;font-size:12px;color:var(--text);outline:none;}
+.filter-bar select:focus,.filter-bar input:focus{border-color:var(--accent);}
+.btn{background:linear-gradient(135deg,var(--accent),var(--accent2));color:var(--bg);border:none;border-radius:7px;padding:7px 14px;font-size:11px;font-weight:700;cursor:pointer;transition:opacity 0.2s;white-space:nowrap;}
+.btn:hover{opacity:0.85;}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--text2);}
+.btn-outline:hover{border-color:var(--accent);color:var(--accent);}
+.btn-pdf{background:linear-gradient(135deg,#ff4757,#c0392b);color:#fff;}
+.btn-excel{background:linear-gradient(135deg,#00e676,#00b248);color:#000;}
+.section-title{font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700;margin-bottom:18px;display:flex;align-items:center;gap:9px;}
+.section-title::after{content:'';flex:1;height:1px;background:var(--border);}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--accent);display:inline-block;}
+.perf-podium{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:22px;}
+.podium-card{background:var(--card);border:1px solid var(--border);border-radius:13px;padding:18px;text-align:center;}
+.podium-card.gold{border-color:var(--gold);background:linear-gradient(135deg,var(--card),rgba(255,215,0,0.06));}
+.podium-card.silver{border-color:#c0c0c0;background:linear-gradient(135deg,var(--card),rgba(192,192,192,0.05));}
+.podium-card.bronze{border-color:#cd7f32;background:linear-gradient(135deg,var(--card),rgba(205,127,50,0.05));}
+.podium-medal{font-size:34px;margin-bottom:7px;}
+.podium-name{font-family:'Rajdhani',sans-serif;font-size:15px;font-weight:700;margin-bottom:3px;}
+.podium-score{font-size:22px;font-weight:700;color:var(--accent);font-family:'Rajdhani',sans-serif;}
+.podium-score-label{font-size:9px;color:var(--text2);margin-bottom:8px;}
+.podium-stats{display:flex;justify-content:center;gap:14px;font-size:11px;color:var(--text2);}
+.table-scroll{max-height:480px;overflow-y:auto;}
+.table-scroll::-webkit-scrollbar{width:4px;}
+.table-scroll::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+.zone-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:13px;margin-bottom:22px;}
+.zone-card{background:var(--card);border:1px solid var(--border);border-radius:11px;padding:14px;}
+.zone-name{font-family:'Rajdhani',sans-serif;font-size:15px;font-weight:700;color:var(--accent);}
+.zone-val{font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700;margin:3px 0;}
+.zone-sub{font-size:10px;color:var(--text2);}
+
+/* ===== UPLOAD PANEL ===== */
+#page-upload{}
+.upload-zone{border:2px dashed var(--border);border-radius:16px;padding:40px 30px;text-align:center;cursor:pointer;transition:all 0.3s;background:var(--card);position:relative;}
+.upload-zone:hover,.upload-zone.drag-over{border-color:var(--accent);background:rgba(0,212,255,0.04);}
+.upload-icon{font-size:52px;margin-bottom:14px;opacity:0.7;}
+.upload-title{font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;margin-bottom:8px;}
+.upload-sub{font-size:13px;color:var(--text2);margin-bottom:20px;}
+#csvFileInput{display:none;}
+.upload-btn-label{background:linear-gradient(135deg,var(--accent),var(--purple));color:#fff;border:none;border-radius:9px;padding:11px 28px;font-size:13px;font-weight:700;cursor:pointer;display:inline-block;transition:opacity 0.2s;}
+.upload-btn-label:hover{opacity:0.85;}
+.upload-info{margin-top:12px;font-size:11px;color:var(--text3);}
+#uploadProgress{display:none;margin-top:18px;}
+.progress-bar{height:6px;background:var(--border);border-radius:3px;overflow:hidden;}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--purple));border-radius:3px;transition:width 0.4s;}
+.progress-text{font-size:11px;color:var(--text2);margin-top:6px;text-align:center;}
+#uploadStatus{margin-top:16px;padding:14px 18px;border-radius:10px;font-size:13px;display:none;}
+.status-success{background:rgba(0,230,118,0.1);border:1px solid rgba(0,230,118,0.3);color:var(--green);}
+.status-error{background:rgba(255,71,87,0.1);border:1px solid rgba(255,71,87,0.3);color:var(--red);}
+.col-preview{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-top:16px;}
+.col-chip{background:var(--card2);border:1px solid var(--border);border-radius:7px;padding:7px 12px;font-size:11px;color:var(--text2);}
+.col-chip strong{color:var(--accent);display:block;margin-bottom:2px;font-size:10px;text-transform:uppercase;}
+.export-panel{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:24px;margin-top:22px;}
+.export-panel h3{font-family:'Rajdhani',sans-serif;font-size:18px;margin-bottom:16px;}
+.export-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;}
+.export-item{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center;}
+.export-item-icon{font-size:32px;margin-bottom:8px;}
+.export-item-title{font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:600;margin-bottom:4px;}
+.export-item-sub{font-size:11px;color:var(--text2);margin-bottom:12px;}
+.export-btns{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;}
+.daily-detail-card{background:var(--card);border:1px solid var(--border);border-radius:11px;overflow:hidden;margin-bottom:14px;}
+.detail-header{padding:11px 14px;background:var(--card2);display:flex;justify-content:space-between;align-items:center;}
+.detail-header h4{font-family:'Rajdhani',sans-serif;font-size:13px;}
+</style>
+</head>
+<body>
+
+<div id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">UCC</div>
+    <div>
+      <div class="logo-text">Collection Portal</div>
+      <div class="logo-sub">Bareilly Municipal Corporation</div>
+    </div>
+  </div>
+  <div class="nav-section">
+    <div class="nav-label">Data</div>
+    <div class="nav-item" onclick="showPage('upload',this)"><span class="nav-icon">📂</span> Upload & Extract</div>
+  </div>
+  <div class="nav-section">
+    <div class="nav-label">Reports</div>
+    <div class="nav-item active" onclick="showPage('dashboard',this)"><span class="nav-icon">📊</span> Dashboard</div>
+    <div class="nav-item" onclick="showPage('ward-report',this)"><span class="nav-icon">🏘️</span> Ward-Wise Report</div>
+    <div class="nav-item" onclick="showPage('supervisor-report',this)"><span class="nav-icon">👤</span> Supervisor Report</div>
+    <div class="nav-item" onclick="showPage('attendance',this)"><span class="nav-icon">🕐</span> Duty Hours</div>
+    <div class="nav-item" onclick="showPage('performance',this)"><span class="nav-icon">🏆</span> Performance</div>
+    <div class="nav-item" onclick="showPage('productivity',this)"><span class="nav-icon">⚡</span> Productivity</div>
+    <div class="nav-item" onclick="showPage('analytics',this)"><span class="nav-icon">📈</span> Analytics</div>
+    <div class="nav-item" onclick="showPage('mis',this)"><span class="nav-icon">📋</span> MIS Report</div>
+  </div>
+</div>
+
+<div id="main">
+  <div class="topbar">
+    <div class="topbar-title">UCC Charge Collection System</div>
+    <div class="topbar-right">
+      <span id="dataLabel" style="font-size:12px;color:var(--text2)">May 2026 — Built-in Data</span>
+      <span class="badge live">● LIVE</span>
+    </div>
+  </div>
+
+  <!-- ===== UPLOAD PAGE ===== -->
+  <div id="page-upload" class="page">
+    <div class="section-title"><span class="dot"></span> Upload CSV & Extract Reports</div>
+
+    <div class="upload-zone" id="uploadZone" onclick="document.getElementById('csvFileInput').click()"
+      ondragover="event.preventDefault();this.classList.add('drag-over')"
+      ondragleave="this.classList.remove('drag-over')"
+      ondrop="handleDrop(event)">
+      <div class="upload-icon">📁</div>
+      <div class="upload-title">Drop your UCC CSV file here</div>
+      <div class="upload-sub">Supports the standard UCC Charge Collection Export format</div>
+      <label class="upload-btn-label" onclick="event.stopPropagation();document.getElementById('csvFileInput').click()">
+        Choose CSV File
+      </label>
+      <div class="upload-info">Expected columns: S.No., Transaction ID, Date, Time, Customer Name, Ward Name, Zone Name, Supervisor Name, Amount Collected, Payment Mode, etc.</div>
+      <input type="file" id="csvFileInput" accept=".csv" onchange="handleCSVUpload(event)">
+    </div>
+
+    <div id="uploadProgress">
+      <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+      <div class="progress-text" id="progressText">Processing...</div>
+    </div>
+    <div id="uploadStatus"></div>
+    <div id="colPreview"></div>
+
+    <!-- EXPORT PANEL — always visible -->
+    <div class="export-panel">
+      <h3>📤 Extract Reports</h3>
+      <p style="font-size:12px;color:var(--text2);margin-bottom:16px">Export any report as PDF or Excel. Uses currently loaded data (built-in or uploaded CSV).</p>
+      <div class="export-grid">
+
+        <div class="export-item">
+          <div class="export-item-icon">📊</div>
+          <div class="export-item-title">Dashboard Summary</div>
+          <div class="export-item-sub">KPIs, zones, collection overview</div>
+          <div class="export-btns">
+            <button class="btn btn-pdf" onclick="exportPDF('dashboard')">📄 PDF</button>
+            <button class="btn btn-excel" onclick="exportExcel('dashboard')">📊 Excel</button>
+          </div>
+        </div>
+
+        <div class="export-item">
+          <div class="export-item-icon">🏘️</div>
+          <div class="export-item-title">Ward-Wise Report</div>
+          <div class="export-item-sub">All 70 wards with collection data</div>
+          <div class="export-btns">
+            <button class="btn btn-pdf" onclick="exportPDF('ward')">📄 PDF</button>
+            <button class="btn btn-excel" onclick="exportExcel('ward')">📊 Excel</button>
+          </div>
+        </div>
+
+        <div class="export-item">
+          <div class="export-item-icon">👤</div>
+          <div class="export-item-title">Supervisor Report</div>
+          <div class="export-item-sub">All supervisors ranked with scores</div>
+          <div class="export-btns">
+            <button class="btn btn-pdf" onclick="exportPDF('supervisor')">📄 PDF</button>
+            <button class="btn btn-excel" onclick="exportExcel('supervisor')">📊 Excel</button>
+          </div>
+        </div>
+
+        <div class="export-item">
+          <div class="export-item-icon">🕐</div>
+          <div class="export-item-title">Duty Hours Report</div>
+          <div class="export-item-sub">Daily attendance & working time</div>
+          <div class="export-btns">
+            <button class="btn btn-pdf" onclick="exportPDF('attendance')">📄 PDF</button>
+            <button class="btn btn-excel" onclick="exportExcel('attendance')">📊 Excel</button>
+          </div>
+        </div>
+
+        <div class="export-item">
+          <div class="export-item-icon">🏆</div>
+          <div class="export-item-title">Performance Rankings</div>
+          <div class="export-item-sub">Scores, grades, best/worst</div>
+          <div class="export-btns">
+            <button class="btn btn-pdf" onclick="exportPDF('performance')">📄 PDF</button>
+            <button class="btn btn-excel" onclick="exportExcel('performance')">📊 Excel</button>
+          </div>
+        </div>
+
+        <div class="export-item">
+          <div class="export-item-icon">⚡</div>
+          <div class="export-item-title">Productivity Report</div>
+          <div class="export-item-sub">Slips/hour, ₹/hour efficiency</div>
+          <div class="export-btns">
+            <button class="btn btn-pdf" onclick="exportPDF('productivity')">📄 PDF</button>
+            <button class="btn btn-excel" onclick="exportExcel('productivity')">📊 Excel</button>
+          </div>
+        </div>
+
+        <div class="export-item">
+          <div class="export-item-icon">📋</div>
+          <div class="export-item-title">MIS Report</div>
+          <div class="export-item-sub">Full monthly management summary</div>
+          <div class="export-btns">
+            <button class="btn btn-pdf" onclick="exportPDF('mis')">📄 PDF</button>
+            <button class="btn btn-excel" onclick="exportExcel('mis')">📊 Excel</button>
+          </div>
+        </div>
+
+        <div class="export-item">
+          <div class="export-item-icon">🗂️</div>
+          <div class="export-item-title">Complete Data Export</div>
+          <div class="export-item-sub">All reports in one workbook</div>
+          <div class="export-btns">
+            <button class="btn btn-pdf" onclick="exportPDF('all')">📄 Full PDF</button>
+            <button class="btn btn-excel" onclick="exportExcel('all')">📊 Full Excel</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div id="page-dashboard" class="page active">
+    <div class="section-title"><span class="dot"></span> Dashboard Overview</div>
+    <div class="kpi-grid">
+      <div class="kpi-card" style="--accent-color:var(--accent)"><div class="kpi-label">Total Collection</div><div class="kpi-value" id="kpiTotal">₹30.95L</div><div class="kpi-sub" id="kpiRange">01–27 May 2026</div><div class="kpi-icon">💰</div></div>
+      <div class="kpi-card" style="--accent-color:var(--green)"><div class="kpi-label">Total Slips</div><div class="kpi-value" id="kpiSlips">27,747</div><div class="kpi-sub">Transactions</div><div class="kpi-icon">🧾</div></div>
+      <div class="kpi-card" style="--accent-color:var(--gold)"><div class="kpi-label">Active Supervisors</div><div class="kpi-value" id="kpiSups">60</div><div class="kpi-sub" id="kpiWards">Across 70 wards</div><div class="kpi-icon">👥</div></div>
+      <div class="kpi-card" style="--accent-color:var(--orange)"><div class="kpi-label">Avg Daily Collection</div><div class="kpi-value" id="kpiAvgDaily">₹1.15L</div><div class="kpi-sub">Per working day</div><div class="kpi-icon">📅</div></div>
+      <div class="kpi-card" style="--accent-color:var(--purple)"><div class="kpi-label">Best Ward</div><div class="kpi-value" id="kpiBestWard">Ward 21</div><div class="kpi-sub" id="kpiBestWardAmt">₹2,28,790</div><div class="kpi-icon">🥇</div></div>
+      <div class="kpi-card" style="--accent-color:#ff4757"><div class="kpi-label">Best Supervisor</div><div class="kpi-value" id="kpiBestSup" style="font-size:16px">Sachin Gauhar</div><div class="kpi-sub" id="kpiBestSupAmt">₹1,32,400</div><div class="kpi-icon">⭐</div></div>
+    </div>
+    <div class="section-title"><span class="dot"></span> Zone Summary</div>
+    <div class="zone-grid" id="zoneCards"></div>
+    <div class="charts-row">
+      <div class="chart-card full">
+        <div class="chart-title"><span>📈</span> Daily Collection Trend</div>
+        <canvas id="dailyChart"></canvas>
+      </div>
+      <div class="chart-card"><div class="chart-title"><span>💳</span> Payment Mode</div><canvas id="paymentChart"></canvas></div>
+      <div class="chart-card"><div class="chart-title"><span>🏗️</span> Property Type</div><canvas id="propChart"></canvas></div>
+    </div>
+    <div class="charts-row">
+      <div class="chart-card"><div class="chart-title"><span>🏘️</span> Top 10 Wards</div><canvas id="wardChart"></canvas></div>
+      <div class="chart-card"><div class="chart-title"><span>👤</span> Top 10 Supervisors</div><canvas id="supChart"></canvas></div>
+    </div>
+    <div class="tbl-actions" style="margin-bottom:10px">
+      <button class="btn btn-pdf" onclick="exportPDF('dashboard')">📄 Export PDF</button>
+      <button class="btn btn-excel" onclick="exportExcel('dashboard')">📊 Export Excel</button>
+    </div>
+  </div>
+
+  <!-- WARD REPORT -->
+  <div id="page-ward-report" class="page">
+    <div class="section-title"><span class="dot"></span> Ward-Wise Collection Report</div>
+    <div class="filter-bar">
+      <label>Zone:</label>
+      <select id="wardZoneFilter" onchange="filterWards()">
+        <option value="">All Zones</option>
+        <option>Z1-C1</option><option>Z2-C1</option><option>Z3-C1</option><option>Z4-C1</option>
+      </select>
+      <label>Ward:</label>
+      <input type="text" id="wardSearch" placeholder="Ward no..." oninput="filterWards()" style="width:100px">
+      <button class="btn btn-pdf" onclick="exportPDF('ward')">📄 PDF</button>
+      <button class="btn btn-excel" onclick="exportExcel('ward')">📊 Excel</button>
+    </div>
+    <div class="table-card">
+      <div class="table-header">
+        <h3>Ward Collection Summary <span id="wardCount" style="font-size:11px;color:var(--text2);font-family:Inter"></span></h3>
+      </div>
+      <div class="table-scroll">
+        <table id="wardTable">
+          <thead><tr>
+            <th onclick="sortTbl('wardTable',0)">#</th>
+            <th onclick="sortTbl('wardTable',1)">Ward ↕</th>
+            <th onclick="sortTbl('wardTable',2)">Zone</th>
+            <th onclick="sortTbl('wardTable',3)">Slips ↕</th>
+            <th onclick="sortTbl('wardTable',4)">Collection ↕</th>
+            <th onclick="sortTbl('wardTable',5)">Avg/Slip ↕</th>
+            <th onclick="sortTbl('wardTable',6)">Supervisors</th>
+            <th>%</th>
+          </tr></thead>
+          <tbody id="wardTbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- SUPERVISOR REPORT -->
+  <div id="page-supervisor-report" class="page">
+    <div class="section-title"><span class="dot"></span> Supervisor-Wise Collection Report</div>
+    <div class="filter-bar">
+      <label>Search:</label>
+      <input type="text" id="supSearch" placeholder="Supervisor name..." oninput="filterSups()" style="width:170px">
+      <button class="btn btn-pdf" onclick="exportPDF('supervisor')">📄 PDF</button>
+      <button class="btn btn-excel" onclick="exportExcel('supervisor')">📊 Excel</button>
+    </div>
+    <div class="table-card">
+      <div class="table-header"><h3>Supervisor Performance Summary</h3></div>
+      <div class="table-scroll">
+        <table id="supTable">
+          <thead><tr>
+            <th>Rank</th><th>Name ↕</th><th>Wards</th>
+            <th onclick="sortTbl('supTable',3)">Slips ↕</th>
+            <th onclick="sortTbl('supTable',4)">Collection ↕</th>
+            <th>Avg/Slip</th><th>Days</th><th>Hours</th>
+            <th onclick="sortTbl('supTable',8)">Score ↕</th>
+          </tr></thead>
+          <tbody id="supTbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ATTENDANCE -->
+  <div id="page-attendance" class="page">
+    <div class="section-title"><span class="dot"></span> Daily Duty Hours Report</div>
+    <div class="filter-bar">
+      <label>Supervisor:</label>
+      <select id="attSupFilter" onchange="renderAttendance()"><option value="">All (Top 5)</option></select>
+      <button class="btn btn-pdf" onclick="exportPDF('attendance')">📄 PDF</button>
+      <button class="btn btn-excel" onclick="exportExcel('attendance')">📊 Excel</button>
+    </div>
+    <div id="attendanceContent"></div>
+  </div>
+
+  <!-- PERFORMANCE -->
+  <div id="page-performance" class="page">
+    <div class="section-title"><span class="dot"></span> Supervisor Performance Analytics</div>
+    <div style="margin-bottom:14px">
+      <button class="btn btn-pdf" onclick="exportPDF('performance')">📄 Export PDF</button>
+      <button class="btn btn-excel" onclick="exportExcel('performance')" style="margin-left:8px">📊 Export Excel</button>
+    </div>
+    <div class="perf-podium" id="perfPodium"></div>
+    <div class="charts-row">
+      <div class="chart-card"><div class="chart-title"><span>🏆</span> Top 10 Score</div><canvas id="perfTopChart"></canvas></div>
+      <div class="chart-card"><div class="chart-title"><span>📉</span> Bottom 10 Score</div><canvas id="perfBottomChart"></canvas></div>
+    </div>
+    <div class="table-card">
+      <div class="table-header"><h3>Full Performance Rankings</h3></div>
+      <div class="table-scroll">
+        <table><thead><tr><th>Rank</th><th>Name</th><th>Collection</th><th>Slips</th><th>Hours</th><th>Days</th><th>Score</th><th>Grade</th></tr></thead>
+        <tbody id="perfTbody"></tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- PRODUCTIVITY -->
+  <div id="page-productivity" class="page">
+    <div class="section-title"><span class="dot"></span> Supervisor Productivity Report</div>
+    <div style="margin-bottom:14px">
+      <button class="btn btn-pdf" onclick="exportPDF('productivity')">📄 Export PDF</button>
+      <button class="btn btn-excel" onclick="exportExcel('productivity')" style="margin-left:8px">📊 Export Excel</button>
+    </div>
+    <div class="table-card">
+      <div class="table-header"><h3>Slips/Hour &amp; Collection/Hour</h3></div>
+      <div class="table-scroll">
+        <table><thead><tr><th>#</th><th>Supervisor</th><th>Slips</th><th>Collection</th><th>Hours</th><th>Slips/Hr</th><th>₹/Hour</th><th>Efficiency</th></tr></thead>
+        <tbody id="prodTbody"></tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ANALYTICS -->
+  <div id="page-analytics" class="page">
+    <div class="section-title"><span class="dot"></span> Advanced Analytics</div>
+    <div class="charts-row">
+      <div class="chart-card full"><div class="chart-title"><span>📊</span> Zone-Wise Collection vs Slips</div><canvas id="zoneChart"></canvas></div>
+      <div class="chart-card"><div class="chart-title"><span>🕐</span> Working Hours Top 15</div><canvas id="hoursChart"></canvas></div>
+      <div class="chart-card"><div class="chart-title"><span>📦</span> Avg ₹/Slip (Top 10 Supervisors)</div><canvas id="avgSlipChart"></canvas></div>
+    </div>
+    <div class="charts-row">
+      <div class="chart-card full"><div class="chart-title"><span>📅</span> Daily Slip Count Trend</div><canvas id="dailySlipsChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- MIS -->
+  <div id="page-mis" class="page">
+    <div class="section-title"><span class="dot"></span> Monthly MIS Report</div>
+    <div style="margin-bottom:14px">
+      <button class="btn btn-pdf" onclick="exportPDF('mis')">📄 Export PDF</button>
+      <button class="btn btn-excel" onclick="exportExcel('mis')" style="margin-left:8px">📊 Export Excel</button>
+    </div>
+    <div class="kpi-grid">
+      <div class="kpi-card" style="--accent-color:var(--accent)"><div class="kpi-label">Total Collection</div><div class="kpi-value" id="misTotal">₹30.95L</div></div>
+      <div class="kpi-card" style="--accent-color:var(--green)"><div class="kpi-label">Total Slips</div><div class="kpi-value" id="misSlips">27,747</div></div>
+      <div class="kpi-card" style="--accent-color:var(--gold)"><div class="kpi-label">Supervisors</div><div class="kpi-value" id="misSups">60</div></div>
+      <div class="kpi-card" style="--accent-color:var(--orange)"><div class="kpi-label">Wards Covered</div><div class="kpi-value" id="misWards">70</div></div>
+      <div class="kpi-card" style="--accent-color:var(--purple)"><div class="kpi-label">Best Ward</div><div class="kpi-value" id="misBW">Ward 21</div><div class="kpi-sub" id="misBWAmt">₹2,28,790</div></div>
+      <div class="kpi-card" style="--accent-color:#ff4757"><div class="kpi-label">Lowest Ward</div><div class="kpi-value" id="misLW">Ward 11</div><div class="kpi-sub" id="misLWAmt">₹3,300</div></div>
+      <div class="kpi-card" style="--accent-color:var(--accent)"><div class="kpi-label">Best Supervisor</div><div class="kpi-value" id="misBS" style="font-size:16px">Sachin Gauhar</div><div class="kpi-sub" id="misBSAmt">₹1,32,400</div></div>
+      <div class="kpi-card" style="--accent-color:#ff4757"><div class="kpi-label">Cash Dominance</div><div class="kpi-value" id="misCash">93.8%</div></div>
+    </div>
+    <div class="charts-row">
+      <div class="chart-card"><div class="chart-title"><span>🏛️</span> Property Type</div><canvas id="misPropChart"></canvas></div>
+      <div class="chart-card"><div class="chart-title"><span>🌐</span> Zone Contribution</div><canvas id="misZoneChart"></canvas></div>
+      <div class="chart-card full"><div class="chart-title"><span>📈</span> Collection Growth Trend</div><canvas id="misTrendChart"></canvas></div>
+    </div>
+    <div class="table-card">
+      <div class="table-header"><h3>Payment Mode Summary</h3></div>
+      <table id="paymentSummaryTable">
+        <thead><tr><th>Mode</th><th>Slips</th><th>Collection</th><th>% of Total</th><th>Avg/Slip</th></tr></thead>
+        <tbody id="paymentTbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== BUILT-IN DATA =====
+const BUILTIN_DATA = {"summary":{"total_collection":3094591.0,"total_slips":27747,"total_supervisors":60,"total_wards":70,"date_range":"01/05/2026 to 27/05/2026","avg_daily_collection":114614.48,"best_supervisor":"Sachin Gauhar","worst_supervisor":"Yuvraj Singh Tomar","best_ward":"21","worst_ward":"11"},"daily":[{"date":"01/05/2026","slips":1002,"collection":97110.0},{"date":"02/05/2026","slips":938,"collection":78710.0},{"date":"03/05/2026","slips":1119,"collection":87700.0},{"date":"04/05/2026","slips":1144,"collection":102750.0},{"date":"05/05/2026","slips":1127,"collection":101060.0},{"date":"06/05/2026","slips":1168,"collection":113525.0},{"date":"07/05/2026","slips":1137,"collection":113267.0},{"date":"08/05/2026","slips":1096,"collection":99820.0},{"date":"09/05/2026","slips":961,"collection":87655.0},{"date":"10/05/2026","slips":961,"collection":88715.0},{"date":"11/05/2026","slips":1049,"collection":106750.0},{"date":"12/05/2026","slips":1121,"collection":113210.0},{"date":"13/05/2026","slips":963,"collection":96430.0},{"date":"14/05/2026","slips":956,"collection":96825.0},{"date":"15/05/2026","slips":916,"collection":126410.0},{"date":"16/05/2026","slips":912,"collection":113660.0},{"date":"17/05/2026","slips":1129,"collection":120890.0},{"date":"18/05/2026","slips":989,"collection":135185.0},{"date":"19/05/2026","slips":1112,"collection":113489.0},{"date":"20/05/2026","slips":1203,"collection":156015.0},{"date":"21/05/2026","slips":1085,"collection":114130.0},{"date":"22/05/2026","slips":1017,"collection":152080.0},{"date":"23/05/2026","slips":1115,"collection":178160.0},{"date":"24/05/2026","slips":961,"collection":117800.0},{"date":"25/05/2026","slips":1060,"collection":166975.0},{"date":"26/05/2026","slips":1043,"collection":171870.0},{"date":"27/05/2026","slips":463,"collection":44400.0}],"supervisors":[{"name":"Sachin Gauhar","slips":600,"collection":132400.0,"wards":"21, 34, 50","working_days":24,"total_hours":94.0,"performance_score":83.2,"slips_per_hour":6.38,"col_per_hour":1408.51,"daily":[{"date":"01/05/2026","first":"09:20","last":"13:27","duty_mins":247,"slips":41},{"date":"02/05/2026","first":"09:52","last":"13:10","duty_mins":198,"slips":22},{"date":"03/05/2026","first":"09:10","last":"13:20","duty_mins":250,"slips":43},{"date":"05/05/2026","first":"10:13","last":"13:52","duty_mins":219,"slips":43},{"date":"06/05/2026","first":"10:00","last":"13:20","duty_mins":200,"slips":42},{"date":"07/05/2026","first":"09:40","last":"13:28","duty_mins":228,"slips":21},{"date":"08/05/2026","first":"09:50","last":"13:49","duty_mins":239,"slips":23},{"date":"09/05/2026","first":"09:21","last":"11:45","duty_mins":144,"slips":39},{"date":"10/05/2026","first":"09:10","last":"13:22","duty_mins":252,"slips":23},{"date":"12/05/2026","first":"10:40","last":"15:04","duty_mins":264,"slips":22},{"date":"13/05/2026","first":"09:01","last":"11:18","duty_mins":137,"slips":22},{"date":"14/05/2026","first":"09:01","last":"13:02","duty_mins":241,"slips":22},{"date":"15/05/2026","first":"08:50","last":"13:21","duty_mins":271,"slips":20},{"date":"16/05/2026","first":"08:50","last":"12:42","duty_mins":232,"slips":24},{"date":"17/05/2026","first":"09:22","last":"14:22","duty_mins":300,"slips":22},{"date":"18/05/2026","first":"08:13","last":"11:30","duty_mins":197,"slips":32},{"date":"19/05/2026","first":"09:38","last":"14:23","duty_mins":285,"slips":21},{"date":"20/05/2026","first":"08:59","last":"14:13","duty_mins":314,"slips":11},{"date":"21/05/2026","first":"09:14","last":"14:47","duty_mins":333,"slips":21},{"date":"22/05/2026","first":"09:18","last":"14:01","duty_mins":283,"slips":22},{"date":"23/05/2026","first":"09:10","last":"11:57","duty_mins":167,"slips":12},{"date":"24/05/2026","first":"10:14","last":"14:04","duty_mins":230,"slips":24},{"date":"25/05/2026","first":"09:02","last":"11:53","duty_mins":171,"slips":14},{"date":"26/05/2026","first":"10:21","last":"14:21","duty_mins":240,"slips":14}],"rank":1},{"name":"Ankush Kumar","slips":806,"collection":95390.0,"wards":"11, 12, 15","working_days":24,"total_hours":86.7,"performance_score":78.8,"slips_per_hour":9.3,"col_per_hour":1100.23,"rank":2,"daily":[]},{"name":"Nikita Saini","slips":723,"collection":82950.0,"wards":"31, 44, 47","working_days":21,"total_hours":71.2,"performance_score":68.8,"slips_per_hour":10.15,"col_per_hour":1165.03,"rank":3,"daily":[]},{"name":"Basant Kaushik","slips":783,"collection":76240.0,"wards":"3, 34, 51","working_days":22,"total_hours":61.8,"performance_score":68.2,"slips_per_hour":12.67,"col_per_hour":1233.66,"rank":4,"daily":[]},{"name":"Jaya Sharma","slips":691,"collection":66670.0,"wards":"37, 44, 47","working_days":23,"total_hours":91.9,"performance_score":66.1,"slips_per_hour":7.52,"col_per_hour":725.46,"rank":5,"daily":[]},{"name":"Manvendra","slips":710,"collection":77370.0,"wards":"12, 34, 50","working_days":23,"total_hours":50.6,"performance_score":64.8,"slips_per_hour":14.03,"col_per_hour":1529.05,"rank":6,"daily":[]},{"name":"Akshat Gupta","slips":409,"collection":98390.0,"wards":"21, 34, 50","working_days":23,"total_hours":70.0,"performance_score":62.4,"slips_per_hour":5.84,"col_per_hour":1405.57,"rank":9,"daily":[]},{"name":"Suresh Kumar","slips":11,"collection":107650.0,"wards":"15, 16, 17","working_days":9,"total_hours":2.4,"performance_score":36.6,"slips_per_hour":4.58,"col_per_hour":44854.17,"rank":51,"daily":[]},{"name":"Manju Sharma","slips":360,"collection":91450.0,"wards":"13, 21, 24","working_days":22,"total_hours":66.3,"performance_score":57.6,"slips_per_hour":5.43,"col_per_hour":1379.34,"rank":15,"daily":[]},{"name":"Sumit Khare","slips":493,"collection":84470.0,"wards":"10, 28, 32","working_days":22,"total_hours":61.7,"performance_score":59.9,"slips_per_hour":7.99,"col_per_hour":1369.04,"rank":11,"daily":[]},{"name":"Lucky Awasthi","slips":229,"collection":83920.0,"wards":"13, 21, 51","working_days":19,"total_hours":49.9,"performance_score":47.3,"slips_per_hour":4.59,"col_per_hour":1681.76,"rank":40,"daily":[]},{"name":"Manish","slips":385,"collection":81015.0,"wards":"13, 21, 25","working_days":22,"total_hours":42.6,"performance_score":52.4,"slips_per_hour":9.04,"col_per_hour":1901.76,"rank":31,"daily":[]},{"name":"Nikita Saini","slips":723,"collection":82950.0,"wards":"31, 44, 47","working_days":21,"total_hours":71.2,"performance_score":68.8,"slips_per_hour":10.15,"col_per_hour":1165.03,"rank":3,"daily":[]},{"name":"Yogesh Sharma","slips":548,"collection":54970.0,"wards":"18, 23, 26","working_days":27,"total_hours":132.4,"performance_score":63.9,"slips_per_hour":4.14,"col_per_hour":415.18,"rank":8,"daily":[]},{"name":"Rashmi","slips":235,"collection":72495.0,"wards":"62, 66, 67","working_days":12,"total_hours":36.9,"performance_score":39.8,"slips_per_hour":6.37,"col_per_hour":1964.63,"rank":48,"daily":[]},{"name":"Yuvraj Singh Tomar","slips":1,"collection":1.0,"wards":"31","working_days":1,"total_hours":0,"performance_score":0.4,"slips_per_hour":0,"col_per_hour":0,"rank":60,"daily":[]}],"wards":[{"ward":"21","slips":617,"collection":228790.0,"zone":"Z4-C1","supervisors":9,"avg_per_slip":370.81},{"ward":"51","slips":1032,"collection":106490.0,"zone":"Z4-C1","supervisors":10,"avg_per_slip":103.19},{"ward":"16","slips":832,"collection":100715.0,"zone":"Z2-C1","supervisors":10,"avg_per_slip":121.05},{"ward":"24","slips":759,"collection":88780.0,"zone":"Z2-C1","supervisors":8,"avg_per_slip":116.97},{"ward":"13","slips":313,"collection":82345.0,"zone":"Z4-C1","supervisors":7,"avg_per_slip":263.08},{"ward":"60","slips":497,"collection":80996.0,"zone":"Z2-C1","supervisors":21,"avg_per_slip":162.97},{"ward":"67","slips":268,"collection":79010.0,"zone":"Z4-C1","supervisors":7,"avg_per_slip":294.81},{"ward":"34","slips":741,"collection":76030.0,"zone":"Z4-C1","supervisors":6,"avg_per_slip":102.6},{"ward":"47","slips":708,"collection":73070.0,"zone":"Z2-C1","supervisors":12,"avg_per_slip":103.21},{"ward":"33","slips":1006,"collection":71740.0,"zone":"Z3-C1","supervisors":13,"avg_per_slip":71.31},{"ward":"57","slips":859,"collection":65549.0,"zone":"Z3-C1","supervisors":6,"avg_per_slip":76.31},{"ward":"43","slips":482,"collection":65000.0,"zone":"Z2-C1","supervisors":8,"avg_per_slip":134.85},{"ward":"70","slips":217,"collection":64370.0,"zone":"Z4-C1","supervisors":3,"avg_per_slip":296.64},{"ward":"6","slips":502,"collection":61350.0,"zone":"Z3-C1","supervisors":4,"avg_per_slip":122.21},{"ward":"41","slips":623,"collection":60005.0,"zone":"Z3-C1","supervisors":7,"avg_per_slip":96.32},{"ward":"62","slips":235,"collection":58870.0,"zone":"Z4-C1","supervisors":8,"avg_per_slip":250.51},{"ward":"50","slips":201,"collection":57970.0,"zone":"Z4-C1","supervisors":7,"avg_per_slip":288.41},{"ward":"45","slips":661,"collection":57895.0,"zone":"Z2-C1","supervisors":7,"avg_per_slip":87.59},{"ward":"20","slips":446,"collection":56615.0,"zone":"Z2-C1","supervisors":7,"avg_per_slip":126.94},{"ward":"37","slips":642,"collection":56360.0,"zone":"Z2-C1","supervisors":5,"avg_per_slip":87.79},{"ward":"15","slips":424,"collection":56350.0,"zone":"Z3-C1","supervisors":6,"avg_per_slip":132.9},{"ward":"52","slips":607,"collection":55360.0,"zone":"Z3-C1","supervisors":5,"avg_per_slip":91.2},{"ward":"32","slips":179,"collection":53900.0,"zone":"Z3-C1","supervisors":4,"avg_per_slip":301.12},{"ward":"28","slips":246,"collection":52560.0,"zone":"Z3-C1","supervisors":5,"avg_per_slip":213.66},{"ward":"54","slips":810,"collection":51680.0,"zone":"Z2-C1","supervisors":6,"avg_per_slip":63.8},{"ward":"38","slips":369,"collection":48520.0,"zone":"Z3-C1","supervisors":5,"avg_per_slip":131.49},{"ward":"39","slips":634,"collection":48450.0,"zone":"Z2-C1","supervisors":6,"avg_per_slip":76.42},{"ward":"66","slips":365,"collection":48410.0,"zone":"Z4-C1","supervisors":6,"avg_per_slip":132.63},{"ward":"44","slips":555,"collection":46910.0,"zone":"Z2-C1","supervisors":11,"avg_per_slip":84.52},{"ward":"55","slips":522,"collection":45950.0,"zone":"Z2-C1","supervisors":6,"avg_per_slip":88.03},{"ward":"12","slips":730,"collection":43950.0,"zone":"Z2-C1","supervisors":7,"avg_per_slip":60.21},{"ward":"11","slips":13,"collection":3300.0,"zone":"Z3-C1","supervisors":5,"avg_per_slip":253.85}],"payment":[{"mode":"CASH","slips":26029,"collection":2615505.0},{"mode":"UPI","slips":1704,"collection":374986.0},{"mode":"CHEQUE","slips":8,"collection":38400.0},{"mode":"NEFT_RTGS","slips":6,"collection":65700.0}],"property_types":[{"type":"Residential","slips":25439,"collection":1739455.0},{"type":"Commercial","slips":2260,"collection":1275386.0},{"type":"Institutional","slips":41,"collection":68750.0},{"type":"Industrial","slips":7,"collection":11000.0}],"zones":[{"zone":"Z1-C1","slips":4955,"collection":432100.0},{"zone":"Z2-C1","slips":11222,"collection":1074202.0},{"zone":"Z4-C1","slips":5051,"collection":921995.0},{"zone":"Z3-C1","slips":6519,"collection":666294.0}]};
+
+let DATA = JSON.parse(JSON.stringify(BUILTIN_DATA));
+let chartInstances = {};
+
+Chart.defaults.color = '#8899bb';
+Chart.defaults.borderColor = '#1e2d4a';
+Chart.defaults.font.family = 'Inter';
+const COLORS = ['#00d4ff','#7c4dff','#00e676','#ffd700','#ff9800','#ff4757','#00bcd4','#e91e63','#9c27b0','#4caf50'];
+
+function fmt(n){if(n>=100000)return'₹'+(n/100000).toFixed(2)+'L';if(n>=1000)return'₹'+(n/1000).toFixed(1)+'K';return'₹'+Math.round(n);}
+function fmtN(n){return n.toLocaleString('en-IN');}
+function fmtDate(){return new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});}
+
+// ===== NAV =====
+function showPage(id, el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  if(el) el.classList.add('active');
+}
+
+// ===== CSV UPLOAD =====
+function handleDrop(e){
+  e.preventDefault();
+  document.getElementById('uploadZone').classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if(file && file.name.endsWith('.csv')) processCSV(file);
+  else showUploadStatus('Please drop a valid .csv file','error');
+}
+function handleCSVUpload(e){
+  const file = e.target.files[0];
+  if(file) processCSV(file);
+}
+
+function processCSV(file){
+  const prog = document.getElementById('uploadProgress');
+  const fill = document.getElementById('progressFill');
+  const txt = document.getElementById('progressText');
+  prog.style.display='block';
+  fill.style.width='20%'; txt.textContent='Reading file...';
+  const reader = new FileReader();
+  reader.onload = function(e){
+    fill.style.width='50%'; txt.textContent='Parsing CSV...';
+    try{
+      const lines = e.target.result.split('\n').filter(l=>l.trim());
+      const headers = lines[0].split(',').map(h=>h.replace(/"/g,'').trim());
+      fill.style.width='70%'; txt.textContent='Processing '+fmtN(lines.length-1)+' rows...';
+      setTimeout(()=>{
+        const rows = [];
+        for(let i=1;i<lines.length;i++){
+          const vals = parseCSVLine(lines[i]);
+          const obj={};
+          headers.forEach((h,j)=>obj[h]=vals[j]||'');
+          rows.push(obj);
+        }
+        fill.style.width='90%'; txt.textContent='Computing analytics...';
+        setTimeout(()=>{
+          const newData = computeAnalytics(rows, headers);
+          DATA = newData;
+          fill.style.width='100%'; txt.textContent='Done!';
+          document.getElementById('dataLabel').textContent = file.name + ' — '+fmtN(rows.length)+' rows';
+          showUploadStatus('✅ Successfully loaded '+fmtN(rows.length)+' transactions from '+file.name+'. All reports updated.','success');
+          showColPreview(headers, rows.slice(0,3));
+          rebuildAllCharts();
+          renderAllTables();
+          updateKPIs();
+        },100);
+      },50);
+    } catch(err){
+      showUploadStatus('❌ Error parsing CSV: '+err.message,'error');
+      fill.style.width='0%';
+    }
+  };
+  reader.readAsText(file);
+}
+
+function parseCSVLine(line){
+  const result=[]; let cur=''; let inQ=false;
+  for(let i=0;i<line.length;i++){
+    const c=line[i];
+    if(c==='"'){inQ=!inQ;}
+    else if(c===','&&!inQ){result.push(cur.trim());cur='';}
+    else cur+=c;
+  }
+  result.push(cur.trim());
+  return result;
+}
+
+function computeAnalytics(rows, headers){
+  const getVal = (row, keys) => {
+    for(const k of keys){ if(row[k]!==undefined) return row[k]; }
+    return '';
+  };
+  const wardMap={}, supMap={}, dailyMap={}, payMap={}, propMap={}, zoneMap={};
+  let totalCol=0, totalSlips=0;
+  const allDates=new Set(), allSups=new Set(), allWards=new Set();
+
+  rows.forEach(r=>{
+    const ward = getVal(r,['Ward Name','Ward','ward']);
+    const sup = getVal(r,['Supervisor Name','Supervisor','supervisor']);
+    const date = getVal(r,['Date','date']);
+    const time = getVal(r,['Time','time']);
+    const zone = getVal(r,['Zone Name','Zone','zone']);
+    const pm = getVal(r,['Payment Mode','Payment','payment_mode']);
+    const pt = getVal(r,['Property Type Name','Property Type','property_type']);
+    const amtRaw = getVal(r,['Amount Collected','Amount','amount']);
+    const amt = parseFloat(amtRaw)||0;
+
+    totalCol+=amt; totalSlips++;
+    allDates.add(date); allSups.add(sup); allWards.add(ward);
+
+    if(!wardMap[ward]) wardMap[ward]={ward,slips:0,collection:0,zone,supervisors:new Set()};
+    wardMap[ward].slips++; wardMap[ward].collection+=amt; wardMap[ward].supervisors.add(sup);
+
+    if(!supMap[sup]) supMap[sup]={name:sup,slips:0,collection:0,ward:new Set(),times_by_date:{}};
+    supMap[sup].slips++; supMap[sup].collection+=amt; supMap[sup].ward.add(ward);
+    if(time&&date){
+      if(!supMap[sup].times_by_date[date]) supMap[sup].times_by_date[date]={times:[],slips:0};
+      supMap[sup].times_by_date[date].times.push(time);
+      supMap[sup].times_by_date[date].slips++;
+    }
+
+    if(!dailyMap[date]) dailyMap[date]={date,slips:0,collection:0};
+    dailyMap[date].slips++; dailyMap[date].collection+=amt;
+
+    if(!payMap[pm]) payMap[pm]={mode:pm,slips:0,collection:0};
+    payMap[pm].slips++; payMap[pm].collection+=amt;
+
+    if(!propMap[pt]) propMap[pt]={type:pt,slips:0,collection:0};
+    propMap[pt].slips++; propMap[pt].collection+=amt;
+
+    if(!zoneMap[zone]) zoneMap[zone]={zone,slips:0,collection:0};
+    zoneMap[zone].slips++; zoneMap[zone].collection+=amt;
+  });
+
+  // Build supervisor list with scores
+  const supList=Object.values(supMap).map(s=>{
+    let totalMins=0, workingDays=0;
+    const daily=[];
+    Object.entries(s.times_by_date).sort((a,b)=>a[0]>b[0]?1:-1).forEach(([date,v])=>{
+      const mins=v.times.map(t=>{ const p=t.split(':');return parseInt(p[0])*60+(parseInt(p[1])||0);}).filter(m=>!isNaN(m));
+      if(mins.length){
+        const first=Math.min(...mins),last=Math.max(...mins),duty=last-first;
+        totalMins+=duty; workingDays++;
+        daily.push({date,first:`${String(Math.floor(first/60)).padStart(2,'0')}:${String(first%60).padStart(2,'0')}`,last:`${String(Math.floor(last/60)).padStart(2,'0')}:${String(last%60).padStart(2,'0')}`,duty_mins:duty,slips:v.slips});
+      }
+    });
+    return {...s,wards:Array.from(s.ward).slice(0,3).join(', '),working_days:workingDays,total_hours:Math.round(totalMins/60*10)/10,daily};
+  });
+
+  const maxCol=Math.max(...supList.map(s=>s.collection))||1;
+  const maxSlips=Math.max(...supList.map(s=>s.slips))||1;
+  const maxHours=Math.max(...supList.map(s=>s.total_hours))||1;
+  const maxDays=Math.max(...supList.map(s=>s.working_days))||1;
+
+  supList.forEach(s=>{
+    s.performance_score=Math.round(((s.collection/maxCol)*40+(s.slips/maxSlips)*30+(s.total_hours/maxHours)*20+(s.working_days/maxDays)*10)*10)/10;
+    s.slips_per_hour=s.total_hours>0?Math.round(s.slips/s.total_hours*100)/100:0;
+    s.col_per_hour=s.total_hours>0?Math.round(s.collection/s.total_hours*100)/100:0;
+  });
+  supList.sort((a,b)=>b.performance_score-a.performance_score);
+  supList.forEach((s,i)=>s.rank=i+1);
+
+  const wardList=Object.values(wardMap).map(w=>({...w,supervisors:w.supervisors.size,avg_per_slip:w.slips?Math.round(w.collection/w.slips*100)/100:0}));
+  wardList.sort((a,b)=>b.collection-a.collection);
+  const dailyList=Object.values(dailyMap).sort((a,b)=>a.date>b.date?1:-1);
+  const sortedDates=dailyList.map(d=>d.date);
+  const firstDate=sortedDates[0]||'', lastDate=sortedDates[sortedDates.length-1]||'';
+
+  const bestWard=wardList[0]||{ward:'-',collection:0};
+  const worstWard=wardList[wardList.length-1]||{ward:'-',collection:0};
+  const bestSup=supList[0]||{name:'-',collection:0};
+  const cashPct=totalCol>0?Math.round((payMap['CASH']?.collection||0)/totalCol*1000)/10:0;
+
+  return {
+    summary:{total_collection:totalCol,total_slips:totalSlips,total_supervisors:allSups.size,total_wards:allWards.size,date_range:firstDate+' to '+lastDate,avg_daily_collection:dailyList.length?Math.round(totalCol/dailyList.length):0,best_supervisor:bestSup.name,worst_supervisor:supList[supList.length-1]?.name||'-',best_ward:bestWard.ward,worst_ward:worstWard.ward},
+    daily:dailyList, supervisors:supList, wards:wardList,
+    payment:Object.values(payMap), property_types:Object.values(propMap), zones:Object.values(zoneMap)
+  };
+}
+
+function showUploadStatus(msg, type){
+  const el=document.getElementById('uploadStatus');
+  el.style.display='block';
+  el.className='status-'+type;
+  el.innerHTML=msg;
+}
+
+function showColPreview(headers, sampleRows){
+  const div=document.getElementById('colPreview');
+  div.innerHTML='<div style="font-size:12px;color:var(--text2);margin-top:16px;margin-bottom:8px">📋 Detected Columns:</div><div class="col-preview">'+
+    headers.map(h=>`<div class="col-chip"><strong>${h}</strong>${sampleRows[0]?sampleRows[0][h]||'—':'—'}</div>`).join('')+'</div>';
+}
+
+// ===== RENDER ALL =====
+function updateKPIs(){
+  const s=DATA.summary;
+  document.getElementById('kpiTotal').textContent=fmt(s.total_collection);
+  document.getElementById('kpiSlips').textContent=fmtN(s.total_slips);
+  document.getElementById('kpiSups').textContent=s.total_supervisors;
+  document.getElementById('kpiWards').textContent='Across '+s.total_wards+' wards';
+  document.getElementById('kpiAvgDaily').textContent=fmt(s.avg_daily_collection);
+  document.getElementById('kpiBestWard').textContent='Ward '+s.best_ward;
+  const bw=DATA.wards.find(w=>w.ward===s.best_ward)||{collection:0};
+  document.getElementById('kpiBestWardAmt').textContent=fmt(bw.collection);
+  document.getElementById('kpiBestSup').textContent=s.best_supervisor;
+  const bs=DATA.supervisors[0]||{collection:0};
+  document.getElementById('kpiBestSupAmt').textContent=fmt(bs.collection)+' | Score: '+bs.performance_score;
+  document.getElementById('kpiRange').textContent=s.date_range;
+  // MIS KPIs
+  document.getElementById('misTotal').textContent=fmt(s.total_collection);
+  document.getElementById('misSlips').textContent=fmtN(s.total_slips);
+  document.getElementById('misSups').textContent=s.total_supervisors;
+  document.getElementById('misWards').textContent=s.total_wards;
+  document.getElementById('misBW').textContent='Ward '+s.best_ward;
+  document.getElementById('misBWAmt').textContent=fmt(bw.collection);
+  const worst=DATA.wards[DATA.wards.length-1]||{ward:'-',collection:0};
+  document.getElementById('misLW').textContent='Ward '+worst.ward;
+  document.getElementById('misLWAmt').textContent=fmt(worst.collection);
+  document.getElementById('misBS').textContent=s.best_supervisor;
+  document.getElementById('misBSAmt').textContent=fmt(bs.collection);
+  const cash=DATA.payment.find(p=>p.mode==='CASH')||{collection:0};
+  document.getElementById('misCash').textContent=s.total_collection?Math.round(cash.collection/s.total_collection*1000)/10+'%':'—';
+}
+
+function renderAllTables(){
+  renderWardTable(DATA.wards);
+  renderSupTable(DATA.supervisors);
+  renderPerformance();
+  renderProductivity();
+  renderAttendance();
+  renderPaymentTable();
+  renderZoneCards();
+  populateAttFilter();
+}
+
+function renderZoneCards(){
+  document.getElementById('zoneCards').innerHTML=DATA.zones.map(z=>`
+    <div class="zone-card"><div class="zone-name">${z.zone}</div>
+    <div class="zone-val">${fmt(z.collection)}</div>
+    <div class="zone-sub">${fmtN(z.slips)} slips</div></div>`).join('');
+}
+
+function renderPaymentTable(){
+  const total=DATA.summary.total_collection;
+  document.getElementById('paymentTbody').innerHTML=DATA.payment.map(p=>`
+    <tr><td><span class="mode-chip mode-${p.mode}">${p.mode}</span></td>
+    <td>${fmtN(p.slips)}</td><td>${fmt(p.collection)}</td>
+    <td>${total?Math.round(p.collection/total*1000)/10:0}%</td>
+    <td>₹${p.slips?Math.round(p.collection/p.slips):0}</td></tr>`).join('');
+}
+
+function renderWardTable(data){
+  const total=DATA.summary.total_collection;
+  document.getElementById('wardTbody').innerHTML=data.map((w,i)=>`
+    <tr><td>${i+1}</td><td><strong>Ward ${w.ward}</strong></td>
+    <td><span style="font-size:10px;padding:2px 6px;border-radius:4px;background:rgba(0,212,255,0.1);color:#00d4ff">${w.zone}</span></td>
+    <td>${fmtN(w.slips)}</td><td><strong>${fmt(w.collection)}</strong></td>
+    <td>₹${w.avg_per_slip}</td><td>${w.supervisors}</td>
+    <td><div class="score-bar"><div class="score-fill" style="width:${Math.min(80,(w.collection/total*100)*4)}px"></div>
+    <span>${total?(w.collection/total*100).toFixed(2):0}%</span></div></td></tr>`).join('');
+  document.getElementById('wardCount').textContent='('+data.length+' wards)';
+}
+
+function filterWards(){
+  const z=document.getElementById('wardZoneFilter').value;
+  const s=document.getElementById('wardSearch').value.toLowerCase();
+  renderWardTable(DATA.wards.filter(w=>(!z||w.zone===z)&&(!s||w.ward.includes(s))));
+}
+
+function renderSupTable(data){
+  document.getElementById('supTbody').innerHTML=data.map(s=>{
+    const rk=s.rank; const rc=rk<=3?'rank-'+rk:'';
+    return`<tr><td><span class="rank-badge ${rc}">${rk}</span></td>
+    <td><strong>${s.name}</strong></td>
+    <td style="font-size:10px;color:#8899bb">${s.wards}</td>
+    <td>${fmtN(s.slips)}</td><td><strong>${fmt(s.collection)}</strong></td>
+    <td>₹${s.slips?Math.round(s.collection/s.slips):0}</td>
+    <td>${s.working_days}</td><td>${s.total_hours}h</td>
+    <td><div class="score-bar"><div class="score-fill" style="width:${s.performance_score}px"></div>
+    <span style="color:#00d4ff;font-weight:700">${s.performance_score}</span></div></td></tr>`;
+  }).join('');
+}
+function filterSups(){ renderSupTable(DATA.supervisors.filter(s=>s.name.toLowerCase().includes(document.getElementById('supSearch').value.toLowerCase()))); }
+
+function populateAttFilter(){
+  const sel=document.getElementById('attSupFilter');
+  while(sel.children.length>1) sel.removeChild(sel.lastChild);
+  DATA.supervisors.filter(s=>s.daily&&s.daily.length>0).forEach(s=>{
+    const o=document.createElement('option');o.value=s.name;o.textContent=s.name;sel.appendChild(o);
+  });
+}
+
+function renderAttendance(){
+  const sel=document.getElementById('attSupFilter').value;
+  const sups=sel?DATA.supervisors.filter(s=>s.name===sel):DATA.supervisors.filter(s=>s.daily&&s.daily.length>0).slice(0,5);
+  document.getElementById('attendanceContent').innerHTML=sups.map(s=>{
+    const tm=s.daily.reduce((a,d)=>a+d.duty_mins,0);
+    return`<div class="daily-detail-card">
+      <div class="detail-header"><h4>${s.name} — Days: ${s.working_days} | Total: ${Math.floor(tm/60)}h ${tm%60}m</h4>
+      <span style="font-size:11px;color:#00d4ff">Score: ${s.performance_score}</span></div>
+      <div class="table-scroll"><table>
+        <thead><tr><th>Date</th><th>First Slip</th><th>Last Slip</th><th>Duty</th><th>Slips</th></tr></thead>
+        <tbody>${s.daily.map(d=>`<tr><td>${d.date}</td>
+          <td style="color:#00e676">${d.first}</td>
+          <td style="color:#ff9800">${d.last}</td>
+          <td><strong style="font-family:Rajdhani;font-size:15px">${Math.floor(d.duty_mins/60)}h ${d.duty_mins%60}m</strong></td>
+          <td>${d.slips}</td></tr>`).join('')}
+        </tbody></table></div></div>`;
+  }).join('');
+}
+
+function renderPerformance(){
+  const top3=DATA.supervisors.slice(0,3);
+  const medals=['🥇','🥈','🥉'],cls=['gold','silver','bronze'];
+  document.getElementById('perfPodium').innerHTML=top3.map((s,i)=>`
+    <div class="podium-card ${cls[i]}"><div class="podium-medal">${medals[i]}</div>
+    <div class="podium-name">${s.name}</div>
+    <div class="podium-score">${s.performance_score}</div>
+    <div class="podium-score-label">Performance Score</div>
+    <div class="podium-stats"><span>${fmt(s.collection)}</span><span>${s.slips} slips</span><span>${s.total_hours}h</span></div>
+    </div>`).join('');
+  document.getElementById('perfTbody').innerHTML=DATA.supervisors.map(s=>{
+    const gr=s.performance_score>=70?'🟢 A':s.performance_score>=50?'🟡 B':s.performance_score>=30?'🟠 C':'🔴 D';
+    return`<tr><td><span class="rank-badge ${s.rank<=3?'rank-'+s.rank:''}">${s.rank}</span></td>
+    <td>${s.name}</td><td>${fmt(s.collection)}</td><td>${fmtN(s.slips)}</td>
+    <td>${s.total_hours}h</td><td>${s.working_days}</td>
+    <td><div class="score-bar"><div class="score-fill" style="width:${s.performance_score}px"></div>
+    <strong style="color:#00d4ff">${s.performance_score}</strong></div></td>
+    <td>${gr}</td></tr>`;
+  }).join('');
+}
+
+function renderProductivity(){
+  const withH=DATA.supervisors.filter(s=>s.total_hours>0).sort((a,b)=>b.col_per_hour-a.col_per_hour);
+  const maxCPH=Math.max(...withH.map(s=>s.col_per_hour))||1;
+  document.getElementById('prodTbody').innerHTML=withH.map((s,i)=>`
+    <tr><td><span class="rank-badge">${i+1}</span></td>
+    <td><strong>${s.name}</strong></td><td>${fmtN(s.slips)}</td>
+    <td>${fmt(s.collection)}</td><td>${s.total_hours}h</td>
+    <td>${s.slips_per_hour}</td>
+    <td><strong style="color:#ffd700">₹${fmtN(Math.round(s.col_per_hour))}</strong></td>
+    <td><div class="score-bar"><div class="score-fill" style="width:${Math.round(s.col_per_hour/maxCPH*80)}px;background:linear-gradient(90deg,#ffd700,#ff9800)"></div>
+    <span>${Math.round(s.col_per_hour/maxCPH*100)}%</span></div></td></tr>`).join('');
+}
+
+// ===== CHARTS =====
+function mkChart(id, cfg){
+  if(chartInstances[id]){ chartInstances[id].destroy(); }
+  const el=document.getElementById(id);
+  if(!el) return;
+  chartInstances[id]=new Chart(el,cfg);
+}
+
+function rebuildAllCharts(){
+  const d=DATA;
+  mkChart('dailyChart',{type:'line',data:{labels:d.daily.map(x=>x.date.slice(0,5)),datasets:[{label:'Collection',data:d.daily.map(x=>x.collection),borderColor:'#00d4ff',backgroundColor:'rgba(0,212,255,0.08)',fill:true,tension:0.4,pointRadius:3}]},options:{plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>fmt(v)},grid:{color:'#1e2d4a'}},x:{grid:{color:'#1e2d4a'}}}}});
+  mkChart('paymentChart',{type:'doughnut',data:{labels:d.payment.map(p=>p.mode),datasets:[{data:d.payment.map(p=>p.collection),backgroundColor:COLORS,borderWidth:0,hoverOffset:6}]},options:{plugins:{legend:{position:'right',labels:{boxWidth:10,padding:10}},tooltip:{callbacks:{label:c=>c.label+': '+fmt(c.raw)}}}}});
+  mkChart('propChart',{type:'doughnut',data:{labels:d.property_types.map(p=>p.type),datasets:[{data:d.property_types.map(p=>p.collection),backgroundColor:['#7c4dff','#00d4ff','#ffd700','#00e676'],borderWidth:0}]},options:{plugins:{legend:{position:'right',labels:{boxWidth:10,padding:10}},tooltip:{callbacks:{label:c=>c.label+': '+fmt(c.raw)}}}}});
+  const t10w=d.wards.slice(0,10);
+  mkChart('wardChart',{type:'bar',data:{labels:t10w.map(w=>'W'+w.ward),datasets:[{label:'₹',data:t10w.map(w=>w.collection),backgroundColor:COLORS,borderRadius:5}]},options:{plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>fmt(v)},grid:{color:'#1e2d4a'}},x:{grid:{display:false}}}}});
+  const t10s=d.supervisors.slice(0,10);
+  mkChart('supChart',{type:'bar',data:{labels:t10s.map(s=>s.name.split(' ')[0]),datasets:[{label:'₹',data:t10s.map(s=>s.collection),backgroundColor:COLORS,borderRadius:5}]},options:{plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>fmt(v)},grid:{color:'#1e2d4a'}},x:{grid:{display:false}}}}});
+  const top10p=d.supervisors.slice(0,10),bot10p=d.supervisors.slice(-10).reverse();
+  mkChart('perfTopChart',{type:'bar',data:{labels:top10p.map(s=>s.name.split(' ')[0]),datasets:[{label:'Score',data:top10p.map(s=>s.performance_score),backgroundColor:COLORS,borderRadius:5}]},options:{plugins:{legend:{display:false}},scales:{y:{max:100,grid:{color:'#1e2d4a'}},x:{grid:{display:false}}}}});
+  mkChart('perfBottomChart',{type:'bar',data:{labels:bot10p.map(s=>s.name.split(' ')[0]),datasets:[{label:'Score',data:bot10p.map(s=>s.performance_score),backgroundColor:'#ff475780',borderRadius:5}]},options:{plugins:{legend:{display:false}},scales:{y:{grid:{color:'#1e2d4a'}},x:{grid:{display:false}}}}});
+  const zSorted=[...d.zones].sort((a,b)=>b.collection-a.collection);
+  mkChart('zoneChart',{type:'bar',data:{labels:zSorted.map(z=>z.zone),datasets:[{label:'Collection',data:zSorted.map(z=>z.collection),backgroundColor:'#00d4ff80',borderColor:'#00d4ff',borderWidth:2,borderRadius:6,yAxisID:'y'},{label:'Slips',data:zSorted.map(z=>z.slips),backgroundColor:'#7c4dff80',borderColor:'#7c4dff',borderWidth:2,type:'line',yAxisID:'y2'}]},options:{plugins:{legend:{labels:{boxWidth:10}}},scales:{y:{position:'left',ticks:{callback:v=>fmt(v)},grid:{color:'#1e2d4a'}},y2:{position:'right',grid:{display:false}}}}});
+  const t15h=[...d.supervisors].filter(s=>s.total_hours>0).sort((a,b)=>b.total_hours-a.total_hours).slice(0,15);
+  mkChart('hoursChart',{type:'bar',data:{labels:t15h.map(s=>s.name.split(' ')[0]),datasets:[{label:'Hours',data:t15h.map(s=>s.total_hours),backgroundColor:'#ff980080',borderColor:'#ff9800',borderWidth:1,borderRadius:4}]},options:{indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{grid:{color:'#1e2d4a'}},y:{grid:{display:false}}}}});
+  const t10avg=[...d.supervisors].filter(s=>s.slips>20).sort((a,b)=>(b.collection/b.slips)-(a.collection/a.slips)).slice(0,10);
+  mkChart('avgSlipChart',{type:'bar',data:{labels:t10avg.map(s=>s.name.split(' ')[0]),datasets:[{label:'₹/Slip',data:t10avg.map(s=>Math.round(s.collection/s.slips)),backgroundColor:'#00e67680',borderColor:'#00e676',borderWidth:1,borderRadius:4}]},options:{plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>'₹'+v},grid:{color:'#1e2d4a'}},x:{grid:{display:false}}}}});
+  mkChart('dailySlipsChart',{type:'line',data:{labels:d.daily.map(x=>x.date.slice(0,5)),datasets:[{label:'Slips',data:d.daily.map(x=>x.slips),borderColor:'#7c4dff',backgroundColor:'rgba(124,77,255,0.08)',fill:true,tension:0.4,pointRadius:3}]},options:{plugins:{legend:{display:false}},scales:{y:{grid:{color:'#1e2d4a'}},x:{grid:{color:'#1e2d4a'}}}}});
+  mkChart('misPropChart',{type:'doughnut',data:{labels:d.property_types.map(p=>p.type),datasets:[{data:d.property_types.map(p=>p.collection),backgroundColor:['#7c4dff','#00d4ff','#ffd700','#00e676'],borderWidth:0}]},options:{plugins:{legend:{position:'right',labels:{boxWidth:10}},tooltip:{callbacks:{label:c=>c.label+': '+fmt(c.raw)}}}}});
+  mkChart('misZoneChart',{type:'pie',data:{labels:d.zones.map(z=>z.zone),datasets:[{data:d.zones.map(z=>z.collection),backgroundColor:COLORS.slice(0,4),borderWidth:0}]},options:{plugins:{legend:{position:'right',labels:{boxWidth:10}},tooltip:{callbacks:{label:c=>c.label+': '+fmt(c.raw)}}}}});
+  mkChart('misTrendChart',{type:'bar',data:{labels:d.daily.map(x=>x.date.slice(0,5)),datasets:[{label:'Collection',data:d.daily.map(x=>x.collection),backgroundColor:d.daily.map(x=>x.collection>150000?'#00e676':x.collection>100000?'#00d4ff':'#7c4dff'),borderRadius:4}]},options:{plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>fmt(v)},grid:{color:'#1e2d4a'}},x:{grid:{display:false}}}}});
+}
+
+function sortTbl(tblId,colIdx){
+  const tbody=document.querySelector('#'+tblId+' tbody');
+  const rows=Array.from(tbody.querySelectorAll('tr'));
+  sortTbl._d=sortTbl._d||{};
+  sortTbl._d[tblId+'_'+colIdx]=!sortTbl._d[tblId+'_'+colIdx];
+  const dir=sortTbl._d[tblId+'_'+colIdx];
+  rows.sort((a,b)=>{
+    const va=a.cells[colIdx].textContent.replace(/[₹,LKrh%]/g,'').trim();
+    const vb=b.cells[colIdx].textContent.replace(/[₹,LKrh%]/g,'').trim();
+    const na=parseFloat(va)||va,nb=parseFloat(vb)||vb;
+    return dir?(na>nb?1:-1):(na<nb?1:-1);
+  });
+  rows.forEach(r=>tbody.appendChild(r));
+}
+
+// ===== PDF EXPORT =====
+function exportPDF(type){
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
+  const s=DATA.summary;
+  const dateStr=fmtDate();
+  const pageW=297,margin=14;
+
+  // Header
+  doc.setFillColor(10,14,26);doc.rect(0,0,pageW,22,'F');
+  doc.setTextColor(0,212,255);doc.setFontSize(16);doc.setFont('helvetica','bold');
+  doc.text('UCC COLLECTION MANAGEMENT SYSTEM',margin,13);
+  doc.setTextColor(136,153,187);doc.setFontSize(8);
+  doc.text('Generated: '+dateStr+' | '+s.date_range,pageW-margin,13,{align:'right'});
+  doc.setDrawColor(30,45,74);doc.line(0,22,pageW,22);
+
+  if(type==='dashboard'||type==='all'){
+    doc.setTextColor(0,212,255);doc.setFontSize(12);doc.setFont('helvetica','bold');
+    doc.text('DASHBOARD SUMMARY',margin,32);
+    doc.setFontSize(9);doc.setFont('helvetica','normal');doc.setTextColor(224,232,245);
+    const kpis=[
+      ['Total Collection',fmt(s.total_collection)],
+      ['Total Slips',fmtN(s.total_slips)],
+      ['Supervisors',s.total_supervisors],
+      ['Wards',s.total_wards],
+      ['Best Ward','Ward '+s.best_ward],
+      ['Best Supervisor',s.best_supervisor]
+    ];
+    kpis.forEach((k,i)=>{
+      const x=margin+(i%3)*85,y=42+Math.floor(i/3)*14;
+      doc.setFillColor(19,26,46);doc.roundedRect(x,y-8,80,12,2,2,'F');
+      doc.setTextColor(136,153,187);doc.setFontSize(7);doc.text(k[0],x+4,y-3);
+      doc.setTextColor(0,212,255);doc.setFontSize(10);doc.setFont('helvetica','bold');
+      doc.text(String(k[1]),x+4,y+2);
+      doc.setFont('helvetica','normal');
+    });
+
+    // Zone table
+    doc.setTextColor(0,212,255);doc.setFontSize(10);doc.setFont('helvetica','bold');
+    doc.text('ZONE SUMMARY',margin,78);
+    doc.autoTable({startY:82,head:[['Zone','Slips','Collection','% Share']],body:DATA.zones.map(z=>[z.zone,fmtN(z.slips),fmt(z.collection),(z.collection/s.total_collection*100).toFixed(1)+'%']),theme:'grid',styles:{fontSize:8,textColor:[224,232,245],fillColor:[19,26,46]},headStyles:{fillColor:[10,14,26],textColor:[0,212,255],fontSize:8},alternateRowStyles:{fillColor:[26,35,64]},margin:{left:margin,right:margin}});
+  }
+
+  if(type==='ward'||type==='all'){
+    if(type==='all') doc.addPage();
+    doc.setFillColor(10,14,26);doc.rect(0,0,pageW,22,'F');
+    doc.setTextColor(0,212,255);doc.setFontSize(12);doc.setFont('helvetica','bold');
+    doc.text('WARD-WISE COLLECTION REPORT',margin,13);
+    doc.setTextColor(136,153,187);doc.setFontSize(8);doc.text(dateStr,pageW-margin,13,{align:'right'});
+    doc.autoTable({startY:28,head:[['#','Ward','Zone','Slips','Collection','Avg/Slip','Supervisors','% of Total']],body:DATA.wards.map((w,i)=>[i+1,'Ward '+w.ward,w.zone,fmtN(w.slips),fmt(w.collection),'₹'+w.avg_per_slip,w.supervisors,(w.collection/s.total_collection*100).toFixed(2)+'%']),theme:'grid',styles:{fontSize:7.5,textColor:[224,232,245],fillColor:[19,26,46]},headStyles:{fillColor:[10,14,26],textColor:[0,212,255],fontSize:8},alternateRowStyles:{fillColor:[26,35,64]},margin:{left:margin,right:margin}});
+  }
+
+  if(type==='supervisor'||type==='all'){
+    if(type==='all') doc.addPage();
+    doc.setFillColor(10,14,26);doc.rect(0,0,pageW,22,'F');
+    doc.setTextColor(0,212,255);doc.setFontSize(12);doc.setFont('helvetica','bold');
+    doc.text('SUPERVISOR PERFORMANCE REPORT',margin,13);
+    doc.setTextColor(136,153,187);doc.setFontSize(8);doc.text(dateStr,pageW-margin,13,{align:'right'});
+    doc.autoTable({startY:28,head:[['Rank','Name','Wards','Slips','Collection','Avg/Slip','Days','Hours','Score','Grade']],body:DATA.supervisors.map(s=>{const gr=s.performance_score>=70?'A':s.performance_score>=50?'B':s.performance_score>=30?'C':'D';return[s.rank,s.name,s.wards,fmtN(s.slips),fmt(s.collection),'₹'+Math.round(s.collection/(s.slips||1)),s.working_days,s.total_hours+'h',s.performance_score,gr];}),theme:'grid',styles:{fontSize:7,textColor:[224,232,245],fillColor:[19,26,46]},headStyles:{fillColor:[10,14,26],textColor:[0,212,255],fontSize:7.5},alternateRowStyles:{fillColor:[26,35,64]},margin:{left:margin,right:margin}});
+  }
+
+  if(type==='attendance'||type==='all'){
+    DATA.supervisors.filter(s=>s.daily&&s.daily.length>0).slice(0,type==='all'?5:100).forEach(sup=>{
+      doc.addPage();
+      doc.setFillColor(10,14,26);doc.rect(0,0,pageW,22,'F');
+      doc.setTextColor(0,212,255);doc.setFontSize(12);doc.setFont('helvetica','bold');
+      doc.text('DUTY HOURS — '+sup.name,margin,13);
+      doc.setTextColor(136,153,187);doc.setFontSize(8);doc.text('Working Days: '+sup.working_days+' | Total Hours: '+sup.total_hours+'h | Score: '+sup.performance_score,pageW-margin,13,{align:'right'});
+      doc.autoTable({startY:28,head:[['Date','First Slip','Last Slip','Duty Time','Slips']],body:sup.daily.map(d=>[d.date,d.first,d.last,Math.floor(d.duty_mins/60)+'h '+d.duty_mins%60+'m',d.slips]),theme:'grid',styles:{fontSize:8,textColor:[224,232,245],fillColor:[19,26,46]},headStyles:{fillColor:[10,14,26],textColor:[0,212,255]},alternateRowStyles:{fillColor:[26,35,64]},margin:{left:margin,right:margin}});
+    });
+  }
+
+  if(type==='performance'||type==='all'){
+    if(type==='all') doc.addPage();
+    doc.setFillColor(10,14,26);doc.rect(0,0,pageW,22,'F');
+    doc.setTextColor(0,212,255);doc.setFontSize(12);doc.setFont('helvetica','bold');
+    doc.text('PERFORMANCE ANALYTICS REPORT',margin,13);
+    doc.setTextColor(136,153,187);doc.setFontSize(8);doc.text(dateStr,pageW-margin,13,{align:'right'});
+    doc.autoTable({startY:28,head:[['Rank','Supervisor','Collection','Slips','Hours','Days','Score (100)','Grade']],body:DATA.supervisors.map(s=>{const gr=s.performance_score>=70?'A (Excellent)':s.performance_score>=50?'B (Good)':s.performance_score>=30?'C (Average)':'D (Poor)';return[s.rank,s.name,fmt(s.collection),fmtN(s.slips),s.total_hours+'h',s.working_days,s.performance_score,gr];}),theme:'grid',styles:{fontSize:7.5,textColor:[224,232,245],fillColor:[19,26,46]},headStyles:{fillColor:[10,14,26],textColor:[0,212,255]},alternateRowStyles:{fillColor:[26,35,64]},margin:{left:margin,right:margin}});
+  }
+
+  if(type==='productivity'||type==='all'){
+    if(type==='all') doc.addPage();
+    doc.setFillColor(10,14,26);doc.rect(0,0,pageW,22,'F');
+    doc.setTextColor(0,212,255);doc.setFontSize(12);doc.setFont('helvetica','bold');
+    doc.text('PRODUCTIVITY REPORT',margin,13);
+    doc.setTextColor(136,153,187);doc.setFontSize(8);doc.text(dateStr,pageW-margin,13,{align:'right'});
+    const prodData=[...DATA.supervisors].filter(s=>s.total_hours>0).sort((a,b)=>b.col_per_hour-a.col_per_hour);
+    doc.autoTable({startY:28,head:[['#','Supervisor','Slips','Collection','Hours','Slips/Hr','₹/Hour']],body:prodData.map((s,i)=>[i+1,s.name,fmtN(s.slips),fmt(s.collection),s.total_hours+'h',s.slips_per_hour,'₹'+fmtN(Math.round(s.col_per_hour))]),theme:'grid',styles:{fontSize:7.5,textColor:[224,232,245],fillColor:[19,26,46]},headStyles:{fillColor:[10,14,26],textColor:[0,212,255]},alternateRowStyles:{fillColor:[26,35,64]},margin:{left:margin,right:margin}});
+  }
+
+  if(type==='mis'||type==='all'){
+    if(type==='all') doc.addPage();
+    doc.setFillColor(10,14,26);doc.rect(0,0,pageW,22,'F');
+    doc.setTextColor(0,212,255);doc.setFontSize(12);doc.setFont('helvetica','bold');
+    doc.text('MONTHLY MIS REPORT',margin,13);
+    doc.setTextColor(136,153,187);doc.setFontSize(8);doc.text(s.date_range+' | '+dateStr,pageW-margin,13,{align:'right'});
+    // Daily trend table
+    doc.autoTable({startY:28,head:[['Date','Slips','Collection (₹)']],body:DATA.daily.map(d=>[d.date,fmtN(d.slips),fmt(d.collection)]),theme:'grid',styles:{fontSize:8,textColor:[224,232,245],fillColor:[19,26,46]},headStyles:{fillColor:[10,14,26],textColor:[0,212,255]},alternateRowStyles:{fillColor:[26,35,64]},margin:{left:margin,right:margin},tableWidth:100});
+    // Payment table
+    const y2=doc.lastAutoTable.finalY+10;
+    doc.setTextColor(0,212,255);doc.setFontSize(9);doc.setFont('helvetica','bold');
+    doc.text('Payment Mode Summary',margin,y2);
+    doc.autoTable({startY:y2+5,head:[['Mode','Slips','Collection','%']],body:DATA.payment.map(p=>[p.mode,fmtN(p.slips),fmt(p.collection),(p.collection/s.total_collection*100).toFixed(1)+'%']),theme:'grid',styles:{fontSize:8,textColor:[224,232,245],fillColor:[19,26,46]},headStyles:{fillColor:[10,14,26],textColor:[0,212,255]},alternateRowStyles:{fillColor:[26,35,64]},margin:{left:margin,right:margin},tableWidth:120});
+  }
+
+  const fname={'dashboard':'UCC_Dashboard','ward':'UCC_Ward_Report','supervisor':'UCC_Supervisor_Report','attendance':'UCC_Duty_Hours','performance':'UCC_Performance','productivity':'UCC_Productivity','mis':'UCC_MIS_Report','all':'UCC_Complete_Report'}[type]||'UCC_Report';
+  doc.save(fname+'_'+dateStr.replace(/\s/g,'_')+'.pdf');
+}
+
+// ===== EXCEL EXPORT =====
+function exportExcel(type){
+  const wb=XLSX.utils.book_new();
+  const s=DATA.summary;
+  const addSheet=(name,headers,rows)=>{
+    const ws=XLSX.utils.aoa_to_sheet([headers,...rows]);
+    ws['!cols']=headers.map(()=>({wch:20}));
+    XLSX.utils.book_append_sheet(wb,ws,name.slice(0,31));
+  };
+
+  if(type==='dashboard'||type==='all'){
+    addSheet('Summary',[['Metric','Value']],[
+      ['Total Collection',s.total_collection],['Total Slips',s.total_slips],
+      ['Active Supervisors',s.total_supervisors],['Wards Covered',s.total_wards],
+      ['Date Range',s.date_range],['Avg Daily Collection',s.avg_daily_collection],
+      ['Best Ward','Ward '+s.best_ward],['Best Supervisor',s.best_supervisor]
+    ]);
+    addSheet('Daily Trend',['Date','Slips','Collection (Rs)'],DATA.daily.map(d=>[d.date,d.slips,d.collection]));
+    addSheet('Zone Summary',['Zone','Slips','Collection','% Share'],DATA.zones.map(z=>[z.zone,z.slips,z.collection,(z.collection/s.total_collection*100).toFixed(2)+'%']));
+  }
+  if(type==='ward'||type==='all'){
+    addSheet('Ward Report',['#','Ward','Zone','Slips','Collection (Rs)','Avg per Slip','Supervisors','% of Total'],DATA.wards.map((w,i)=>[i+1,'Ward '+w.ward,w.zone,w.slips,w.collection,w.avg_per_slip,w.supervisors,(w.collection/s.total_collection*100).toFixed(2)+'%']));
+  }
+  if(type==='supervisor'||type==='all'){
+    addSheet('Supervisor Report',['Rank','Name','Wards','Slips','Collection (Rs)','Avg per Slip','Working Days','Total Hours','Performance Score','Grade'],DATA.supervisors.map(s=>[s.rank,s.name,s.wards,s.slips,s.collection,Math.round(s.collection/(s.slips||1)),s.working_days,s.total_hours,s.performance_score,s.performance_score>=70?'A':s.performance_score>=50?'B':s.performance_score>=30?'C':'D']));
+  }
+  if(type==='attendance'||type==='all'){
+    const attRows=[];
+    DATA.supervisors.filter(s=>s.daily&&s.daily.length>0).forEach(sup=>{
+      sup.daily.forEach(d=>{
+        attRows.push([sup.name,d.date,d.first,d.last,Math.floor(d.duty_mins/60)+'h '+d.duty_mins%60+'m',d.duty_mins,d.slips]);
+      });
+    });
+    addSheet('Duty Hours',['Supervisor','Date','First Slip','Last Slip','Duty Duration','Duty Minutes','Slips'],attRows);
+  }
+  if(type==='performance'||type==='all'){
+    addSheet('Performance',['Rank','Supervisor','Collection (Rs)','Slips','Total Hours','Working Days','Performance Score','Grade','Collection Weight','Slips Weight','Hours Weight','Attendance Weight'],DATA.supervisors.map(s=>[s.rank,s.name,s.collection,s.slips,s.total_hours,s.working_days,s.performance_score,s.performance_score>=70?'A (Excellent)':s.performance_score>=50?'B (Good)':s.performance_score>=30?'C (Average)':'D (Poor)',((s.collection/Math.max(...DATA.supervisors.map(x=>x.collection)))*40).toFixed(1),((s.slips/Math.max(...DATA.supervisors.map(x=>x.slips)))*30).toFixed(1),((s.total_hours/Math.max(...DATA.supervisors.map(x=>x.total_hours)))*20).toFixed(1),((s.working_days/Math.max(...DATA.supervisors.map(x=>x.working_days)))*10).toFixed(1)]));
+  }
+  if(type==='productivity'||type==='all'){
+    const prodData=[...DATA.supervisors].filter(s=>s.total_hours>0).sort((a,b)=>b.col_per_hour-a.col_per_hour);
+    addSheet('Productivity',['#','Supervisor','Total Slips','Total Collection (Rs)','Total Hours','Slips per Hour','Rs per Hour'],prodData.map((s,i)=>[i+1,s.name,s.slips,s.collection,s.total_hours,s.slips_per_hour,Math.round(s.col_per_hour)]));
+  }
+  if(type==='mis'||type==='all'){
+    addSheet('MIS Summary',['Metric','Value'],[
+      ['Total Collection (Rs)',s.total_collection],['Total Slips',s.total_slips],
+      ['Active Supervisors',s.total_supervisors],['Wards Covered',s.total_wards],
+      ['Best Supervisor',s.best_supervisor],['Best Ward','Ward '+s.best_ward],
+      ['Date Range',s.date_range]
+    ]);
+    addSheet('Payment Modes',['Mode','Slips','Collection (Rs)','% of Total','Avg per Slip'],DATA.payment.map(p=>[p.mode,p.slips,p.collection,(p.collection/s.total_collection*100).toFixed(2)+'%',Math.round(p.collection/(p.slips||1))]));
+    addSheet('Property Types',['Type','Slips','Collection (Rs)'],DATA.property_types.map(p=>[p.type,p.slips,p.collection]));
+  }
+
+  const fname={'dashboard':'UCC_Dashboard','ward':'UCC_Ward_Report','supervisor':'UCC_Supervisor_Report','attendance':'UCC_Duty_Hours','performance':'UCC_Performance','productivity':'UCC_Productivity','mis':'UCC_MIS','all':'UCC_Complete_Report'}[type]||'UCC_Export';
+  XLSX.writeFile(wb,fname+'_'+fmtDate().replace(/\s/g,'_')+'.xlsx');
+}
+
+// ===== INIT =====
+document.addEventListener('DOMContentLoaded',()=>{
+  updateKPIs();
+  renderAllTables();
+  rebuildAllCharts();
+});
+</script>
+</body>
+</html>
